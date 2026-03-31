@@ -1,0 +1,85 @@
+# Config for local dev only
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint.pylint]
+#max-args = 8 # (Default is 5)
+#max-branches = 20 # (Default is 12)
+max-returns = 10 # (Default is 6)
+#max-statements = 60 # (Default is 50)
+
+[tool.ruff.lint]
+preview = true
+select = [
+    # pycodestyle
+    "E",
+    "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pep8-naming
+    "N",
+    # pydocstyle
+    "D",
+    # flake8-annotations
+    "ANN",
+    # flake8-boolean-trap
+    "FBT",
+    # flake8-builtins
+    "A",
+    # flake8-comprehensions
+    "C4",
+    # flake8-future-annotations
+    "FA",
+    # flake8-logging
+    "LOG",
+    # flake8-pie
+    "PIE",
+    # flake8-quotes
+    "Q",
+    # flake8-return
+    "RET",
+    # flake8-self
+    "SLF",
+    # flake8-type-checking
+    "TCH",
+    # flake8-unused-arguments
+    "ARG",
+    # Pylint
+    "PL",
+    # Refurb
+    "FURB",
+    # Ruff-specific rules
+    "RUF",
+]
+ignore = [
+    # line-lengths
+    "E501",
+    # don't disallow blank line after function docstring
+    "D202",
+    # one-blank-line-before-class (clashes with D211)
+    "D203",
+    # multi-line-summary-second-line (clashes with D212)
+    "D213",
+    # missing-type-self, -class (unnecessary)
+    "ANN101", 
+    "ANN102",
+    # undocumented-public-init, -magic-method (not needed)
+    "D107",
+    "D105",
+    # magic-value-comparison
+    "PLR2004",
+    # whitespace-before-punctuation (clashes with format)
+    "E203",
+    # reimplemented-starmap (obsolete suggestion)
+    "FURB140"
+]
