@@ -2,7 +2,7 @@
 
 import asyncio
 from enum import Enum, auto
-from logging import Logger
+from typing import TYPE_CHECKING
 
 from redis.resp import (
     Command,
@@ -13,6 +13,9 @@ from redis.resp import (
     parse,
 )
 from redis.server.base import READ_BUFFER_SIZE, Address, Config, RedisBaseServer
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 
 class HandshakeState(Enum):

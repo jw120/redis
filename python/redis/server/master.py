@@ -1,10 +1,13 @@
 """Master server implementation."""
 
-import asyncio
-from logging import Logger
+from typing import TYPE_CHECKING
 
 from redis.resp import array, bulk, integer, simple
 from redis.server.base import Address, Config, RedisBaseServer
+
+if TYPE_CHECKING:
+    import asyncio
+    from logging import Logger
 
 EMPTY_RDS_FILE: bytes = bytes.fromhex(
     "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374"

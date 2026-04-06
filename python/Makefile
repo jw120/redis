@@ -8,10 +8,16 @@ all: check python-test integration-test
 check:
 	ruff format $(PYTHON_SRC)
 	ruff check $(PYTHON_SRC)
-	pyright $(PYTHON_SRC)
+	ty check $(PYTHON_SRC)
 
 python-test:
-	pytest $(PYTHON_SRC)
+	uv run pytest $(PYTHON_SRC)
+
+fix:
+	ruff check --fix $(PYTHON_SRC)
+
+unsafe-fix:
+	ruff check --fix --unsafe-fixes $(PYTHON_SRC)
 
 integration-test: integration-base integration-rdb integration-ms
 

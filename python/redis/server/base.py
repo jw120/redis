@@ -1,10 +1,9 @@
 """Base class server implementation."""
 
 import asyncio
-from logging import Logger
 from pathlib import Path
 from time import time_ns
-from typing import Any, Final, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
 from redis.rdb import RDB, Store
 from redis.resp import (
@@ -16,6 +15,9 @@ from redis.resp import (
     parse,
     simple,
 )
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 READ_BUFFER_SIZE: Final[int] = 1024
 
@@ -64,7 +66,7 @@ class RedisBaseServer:
         """Log at information level."""
         if self.logger is not None:
             self.logger.info(
-                f"{self.__class__.__name__.removeprefix("Redis"):12} {self.port:4} - {action:20} - {data}"
+                f"{self.__class__.__name__.removeprefix('Redis'):12} {self.port:4} - {action:20} - {data}"
             )
 
     async def handle_connection(

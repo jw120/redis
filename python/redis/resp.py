@@ -59,7 +59,10 @@ def parse(b: bytes) -> Command | String | Incomplete:
             remainder = CRLF.join(rest[2 * n :])
             #            length = 1 + len(str(n)) + 2 + sum(1 + len(str(count)) + 2 + len(content) + 2 for (count, content) in batched(rest[: 2 * n], 2))
             return Command(
-                value=[_argument(count, content) for (count, content) in batched(rest[: 2 * n], 2)],
+                value=[
+                    _argument(count, content)
+                    for (count, content) in batched(rest[: 2 * n], 2, strict=True)
+                ],
                 length=len(b) - len(remainder),
                 remainder=remainder,
             )

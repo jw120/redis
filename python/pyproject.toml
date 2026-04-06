@@ -1,8 +1,18 @@
 # Config for local dev only
+[project]
+name = "redis"
+version = "0.1.0"
+description = "Python implementation of codecrafters redis project"
+readme = "README.md"
+requires-python = "==3.14.*" # matches build[ack in codecrafters stub
+
+# Replaced by using uvx
+[dependency-groups]
+dev = ["pytest>=8.4.0"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint.pylint]
 #max-args = 8 # (Default is 5)
@@ -70,9 +80,6 @@ ignore = [
     "D203",
     # multi-line-summary-second-line (clashes with D212)
     "D213",
-    # missing-type-self, -class (unnecessary)
-    "ANN101", 
-    "ANN102",
     # undocumented-public-init, -magic-method (not needed)
     "D107",
     "D105",
