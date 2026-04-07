@@ -1,10 +1,20 @@
 //! "Resp" format handling
 
 use anyhow::{Result, bail};
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut, BufMut};
 
 // To do - consider negative numbers
 
+/// Encode as a bulk string
+pub fn encode_bulk_string(s: Bytes) -> Bytes {
+    let mut buffer = BytesMut::new();
+    buffer.put_u8(b'$');
+    buffer.put_slice(s.len().to_string().as_bytes());
+    buffer.put_slice(b"\r\n");
+    buffer.put(s);
+    buffer.put_slice(b"\r\n");
+    buffer.freeze()
+}
 
 /// Parse a bulk string: $ + number + \r\n + string + \r\n
 /// Returns string found and residual bytes on success
@@ -66,10 +76,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bulk_string() {
-        assert_eq!(parse_bulk_string(Bytes::from("$3\r\ncat\r\ndog")).unwrap(), (Bytes::from("cat"), Bytes::from("dog")));
+    fn test_encode_bulk_string() {
+        assert_eq!(encode_bulk_string(Bytes::from("cat")), Bytes::from("$3\r\ncat\r\n"));
     }
 
+    #[test]
+    fn test_parse_bulk_string() {
+        assert_eq!(parse_bulk_string(Bytes::from("$3\r\ncat\r\ndog")).unwrap(), (Bytes::from("cat"), Bytes::from("dog")));
+    }
 
     #[test]
     fn test_parse_char_integer() {
