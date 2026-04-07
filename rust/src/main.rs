@@ -3,12 +3,11 @@
 use std::io;
 
 use anyhow::Result;
-use tokio::net::TcpListener;
-use tokio::io::BufStream;
-use tracing::info;
 use tracing_subscriber::{filter::EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
-use codecrafters_redis::handler::handle;
+use codecrafters_redis::server;
+
+const SERVER_ADDRESS: &str = "127.0.0.1:6379";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -28,18 +27,9 @@ async fn main() -> Result<()> {
         .with(format_layer)
         .with(filter)
         .init();
-    
-    let listener = TcpListener::bind("127.0.0.1:6379").await?;
-    info!("Listening on {listener:?}");
-    
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let mut stream = BufStream::new(stream);
 
-        tokio::spawn(async move {
-            handle(&mut stream).await.unwrap()
-        });
-    }
+    server::run(SERVER_ADDRESS).await
+    
 }
 
 
