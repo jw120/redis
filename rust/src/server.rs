@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use bytes::Bytes;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufStream};
 use tokio::net::TcpListener;
-use tracing::{info, trace};
+use tracing::{debug, info, trace};
 
 use crate::commands::dispatch;
 use crate::db::Database;
@@ -34,7 +34,7 @@ where
         let response = dispatch(db, &command)?;
         stream.write_all(&response).await?;
         stream.flush().await?;
-        info!("Wrote '{}'", String::from_utf8_lossy(&response));
+        debug!("Wrote '{}'", String::from_utf8_lossy(&response));
     }
     Ok(())
 }

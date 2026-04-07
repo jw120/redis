@@ -11,7 +11,6 @@ const SERVER_ADDRESS: &str = "127.0.0.1:6379";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-
     // Set up logging
     let format = fmt::format()
         .without_time()
@@ -22,14 +21,13 @@ async fn main() -> Result<()> {
     let format_layer = tracing_subscriber::fmt::layer()
         .with_writer(io::stderr)
         .event_format(format);
-    let filter = EnvFilter::from_default_env().add_directive(LevelFilter::INFO.into());
+    let filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
     tracing_subscriber::registry()
         .with(format_layer)
         .with(filter)
         .init();
 
     server::run(SERVER_ADDRESS).await
-    
 }
-
-
