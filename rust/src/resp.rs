@@ -5,6 +5,15 @@ use bytes::{Bytes, BytesMut, BufMut};
 
 // To do - consider negative numbers
 
+/// Encode as a simple string
+pub fn encode_simple_string(s: Bytes) -> Bytes {
+    let mut buffer = BytesMut::new();
+    buffer.put_u8(b'+');
+    buffer.put(s);
+    buffer.put_slice(b"\r\n");
+    buffer.freeze()
+}
+
 /// Encode as a bulk string
 pub fn encode_bulk_string(s: Bytes) -> Bytes {
     let mut buffer = BytesMut::new();
@@ -14,6 +23,11 @@ pub fn encode_bulk_string(s: Bytes) -> Bytes {
     buffer.put(s);
     buffer.put_slice(b"\r\n");
     buffer.freeze()
+}
+
+/// Encode a null bulk string
+pub fn encode_null_bulk_string() -> Bytes {
+    Bytes::from("$-1\r\n")
 }
 
 /// Parse a bulk string: $ + number + \r\n + string + \r\n
@@ -76,6 +90,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_encode_simple_string() {
+        assert_eq!(encode_simple_string(Bytes::from("cat")), Bytes::from("+cat\r\n"));
+    }
+    
+    #[test]
     fn test_encode_bulk_string() {
         assert_eq!(encode_bulk_string(Bytes::from("cat")), Bytes::from("$3\r\ncat\r\n"));
     }
@@ -85,6 +104,13 @@ mod tests {
         assert_eq!(parse_bulk_string(Bytes::from("$3\r\ncat\r\ndog")).unwrap(), (Bytes::from("cat"), Bytes::from("dog")));
     }
 
+    #[test]
+    fn test_round_trip_bulk_string() {
+        let s = Bytes::from("abc23 a1!");
+        assert_eq!(parse_bulk_string(encode_bulk_string(s.clone())).unwrap(), (s, Bytes::new()));
+    }
+
+    
     #[test]
     fn test_parse_char_integer() {
         assert_eq!(parse_char_integer(b'$', Bytes::from("$123\r\n@")).unwrap(), (123, Bytes::from("@")));
