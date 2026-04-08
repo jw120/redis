@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow, bail};
 use bytes::Bytes;
 use tracing::debug;
 
-use crate::db::Database;
+use crate::database::Database;
 use crate::resp::{encode_bulk_string, encode_null_bulk_string, encode_simple_string};
 
 /// Dispatch the command
@@ -53,7 +53,7 @@ fn format_byte_array(s: &[Bytes]) -> String {
     // let v: Vec<String> = s.iter().map(|bs| String::from_utf8_lossy(bs)).collect();
     let mut v: Vec<String> = Vec::new();
     for b in s {
-        v.push(String::from_utf8_lossy(&b.to_vec()).to_string());
+        v.push(String::from_utf8_lossy(b).to_string());
     }
     v.join(" ")
 }

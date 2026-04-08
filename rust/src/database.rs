@@ -12,11 +12,11 @@ use bytes::Bytes;
 
 /// Underlying state holding the key-value store
 #[derive(Debug)]
-pub struct State {
+struct Store {
     entries: HashMap<Bytes, Bytes>,
 }
 
-impl State {
+impl Store {
     fn new() -> Self {
         Self {
             entries: HashMap::new(),
@@ -24,36 +24,20 @@ impl State {
     }
 }
 
-/// Guarding the underlying state with a mutex
-#[derive(Debug)]
-pub struct Shared {
-    state: Mutex<State>,
-}
-
-impl Shared {
-    fn new(state: State) -> Self {
-        Self {
-            state: Mutex::new(state),
-        }
-    }
-}
-
 /// Handle to our database
 #[derive(Debug)]
 pub struct Database {
-    shared: Arc<Shared>,
+    shared: Arc<Mutex<Store>>,
 }
 
 impl Database {
     /// Set up a new empty database
-    pub fn new() -> Self {
-        let state = State::new();
-        let shared = Arc::new(Shared::new(state));
-        Self { shared }
+    pub fn initialise() -> Self {
+        Self { shared: Arc::new(Mutex::new(Store::new())) }
     }
 
     /// Create a new handle to the database
-    pub fn new_handle(&self) -> Self {
+    pub fn handle(&self) -> Self {
         Self {
             shared: self.shared.clone(),
         }
@@ -61,19 +45,13 @@ impl Database {
 
     /// Get a value from the database
     pub fn get(&self, key: Bytes) -> Option<Bytes> {
-        let state = self.shared.state.lock().unwrap();
+        let state = self.shared.lock().unwrap();
         state.entries.get(&key).cloned()
     }
 
     /// Set a value into the database
     pub fn set(&self, key: Bytes, value: Bytes) {
-        let mut state = self.shared.state.lock().unwrap();
+        let mut state = self.shared.lock().unwrap();
         state.entries.insert(key, value);
-    }
-}
-
-impl Default for Database {
-    fn default() -> Self {
-        Self::new()
     }
 }

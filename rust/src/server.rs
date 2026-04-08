@@ -7,19 +7,19 @@ use tokio::net::TcpListener;
 use tracing::{debug, info, trace};
 
 use crate::commands::dispatch;
-use crate::db::Database;
+use crate::database::Database;
 use crate::resp::{parse_char_integer, parse_sized_bulk_string};
 
 /// Start and our TCP/IP server
 pub async fn run(addr: &str) -> Result<()> {
-    let db = Database::new();
+    let db = Database::initialise();
     let listener = TcpListener::bind(addr).await?;
     info!("Listening on {listener:?}");
 
     loop {
         let (stream, _) = listener.accept().await?;
         let mut buf_stream = BufStream::new(stream);
-        let db_handle = db.new_handle();
+        let db_handle = db.handle();
 
         tokio::spawn(async move { handle(&db_handle, &mut buf_stream).await.unwrap() });
     }
