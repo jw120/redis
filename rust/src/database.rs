@@ -154,21 +154,26 @@ impl Database {
 
     /// RPUSH command: append a string value to a list in the database (creating it if not existing)
     /// Returns the new length of the list
-    pub fn push(&self, direction: Direction, key: &Bytes, value: Bytes) -> Result<usize> {
+    pub fn push(&self, direction: Direction, key: &Bytes, values: &[Bytes]) -> Result<usize> {
+        if values.is_empty() {
+            bail!("ERR wrong number of arguments for push command");
+        }
+        for value in values {
         match self.get_object(key) {
             None => {
-                self.insert_object(key, &Object::List(VecDeque::from([value])), None);
+                self.insert_object(key, &Object::List(VecDeque::from([value.clone()])), None);
             }
             Some(Object::List(_)) => match direction {
                 Direction::Left => {
-                    self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_front(value))
+                    self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_front(value.clone()))
                 }
                 Direction::Right => {
-                    self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_back(value))
+                    self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_back(value.clone()))
                 }
             },
             Some(_) => bail!("WRONGTYPE Operation against a key holding the wrong kind of value"),
         };
+        }
         debug!("object is {:?}", self.get_object(key));
         self.length(key)
     }

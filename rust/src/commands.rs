@@ -52,8 +52,8 @@ pub fn dispatch(db: &Database, s: &[Bytes]) -> Result<Bytes> {
         }
 
         // Push a string to the right of a list
-        (b"RPUSH", [key, value]) => {
-            let n = db.push(Direction::Right, key, value.clone())?;
+        (b"RPUSH", [key, args @ ..]) => {
+            let n = db.push(Direction::Right, key, args)?;
             Ok(resp::encode_integer(n))
         }
 
