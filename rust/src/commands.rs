@@ -1,51 +1,67 @@
 //! Handle commands
 
-use anyhow::{Result, anyhow, bail};
+use std::str;
+use std::time::{Duration, SystemTime};
+
+use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
 use tracing::debug;
 
-use crate::database::Database;
-use crate::resp::{encode_bulk_string, encode_null_bulk_string, encode_simple_string};
+use crate::database::{Database, Direction};
+use crate::resp;
 
 /// Dispatch the command
 pub fn dispatch(db: &Database, s: &[Bytes]) -> Result<Bytes> {
     debug!("dispatch {}", &format_byte_array(s));
-    let Some(command) = s.first() else {
+    let Some((command, arguments)) = s.split_first() else {
         bail!("No command in dispatch");
     };
-    if command.eq_ignore_ascii_case(b"PING") {
-        if s.len() == 1 {
-            Ok(Bytes::from("+PONG\r\n"))
-        } else {
-            Err(anyhow!("Expected no arguments for PING command"))
-        } 
-    } else if command.eq_ignore_ascii_case(b"ECHO") {
-        if s.len() == 2 {
-            Ok(encode_bulk_string(s[1].clone()))
-        } else {
-            Err(anyhow!("Expected one arguments for ECHO command"))
-        } 
-    } else if command.eq_ignore_ascii_case(b"GET") {
-        if s.len() == 2 {
-            match db.get(s[1].clone()) {
-                Some(value) => Ok(encode_bulk_string(value)),
-                None => Ok(encode_null_bulk_string()),
-            }
-        } else {
-            Err(anyhow!("Expected one arguments for GET command"))
-        } 
-    } else if command.eq_ignore_ascii_case(b"SET") {
-        if s.len() == 3 {
-            db.set(s[1].clone(), s[2].clone());
-            Ok(encode_simple_string(Bytes::from("OK")))
-        } else {
-            Err(anyhow!("Expected one arguments for GET command"))
-        } 
-    } else if command.eq_ignore_ascii_case(b"COMMAND"){
-        // Just ignore this - produced from testing tool
-        Ok(encode_simple_string(Bytes::from("OK")))
-    } else {
-        Err(anyhow!("Unknown command in dispatch"))
+    let command = command.to_ascii_uppercase();
+
+    match (command.as_slice(), arguments) {
+        // Ping command
+        (b"PING", []) => Ok(Bytes::from("+PONG\r\n")),
+
+        // Echo command 
+        (b"ECHO", [arg]) => Ok(resp::encode_bulk_string(arg.clone())),
+
+        // Get command - simple version
+        (b"GET", [key]) => match db.get(key)? {
+            Some(value) => Ok(resp::encode_bulk_string(value)),
+            None => Ok(resp::encode_null_bulk_string()),
+        },
+
+        // Set command - simple version
+        (b"SET", [key, value]) => {
+            db.set(key, value, None);
+            Ok(resp::encode_simple_string(Bytes::from("OK")))
+        }
+
+        // Set command - with expiration time
+        (b"SET", [key, value, tag, units]) => {
+            let units: u64 = str::from_utf8(units)?.parse()?;
+            let duration = match tag.to_ascii_uppercase().as_slice() {
+                b"EX" => Duration::from_secs(units),
+                b"PX" => Duration::from_millis(units),
+                _ => bail!("Unrecognized tag in set command"),
+            };
+            let expiry = SystemTime::now() + duration;
+
+            db.set(key, value, Some(expiry));
+            Ok(resp::encode_simple_string(Bytes::from("OK")))
+        }
+
+        // Push a string to the right of a list
+        (b"RPUSH", [key, value]) => {
+            let n = db.push(Direction::Right, key, value.clone())?;
+            Ok(resp::encode_integer(n))
+        }
+
+        // Command - dummy implementation so redis-cli does not trip and fall
+        (b"COMMAND", _) => Ok(resp::encode_simple_string(Bytes::from("OK"))),
+
+        // Unknown command or wrong number of arguments
+        _ => Err(anyhow!("Unknown command in dispatch")),
     }
 }
 

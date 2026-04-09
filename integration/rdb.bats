@@ -15,7 +15,7 @@ setup() {
 @test "config" {
     run redis-cli CONFIG GET dir
     assert_line --index 0 dir
-    assert_line --index 1 integration
+    assert_line --index 1 ../integration
     run redis-cli CONFIG GET dbfilename
     assert_line --index 0 dbfilename
     assert_line --index 1 read_sample.rdb

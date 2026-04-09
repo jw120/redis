@@ -30,6 +30,17 @@ pub fn encode_null_bulk_string() -> Bytes {
     Bytes::from("$-1\r\n")
 }
 
+
+/// Encode as an integer
+pub fn encode_integer(x: usize) -> Bytes {
+    let mut buffer = BytesMut::new();
+    buffer.put_u8(b':');
+    buffer.put_slice(x.to_string().as_bytes());
+    buffer.put_slice(b"\r\n");
+    buffer.freeze()
+}
+
+
 /// Parse a bulk string: $ + number + \r\n + string + \r\n
 /// Returns string found and residual bytes on success
 pub fn parse_bulk_string(s: Bytes) -> Result<(Bytes, Bytes)> {
@@ -97,6 +108,11 @@ mod tests {
     #[test]
     fn test_encode_bulk_string() {
         assert_eq!(encode_bulk_string(Bytes::from("cat")), Bytes::from("$3\r\ncat\r\n"));
+    }
+
+    #[test]
+    fn test_encode_integer() {
+        assert_eq!(encode_integer(42), Bytes::from(":42\r\n"));
     }
 
     #[test]

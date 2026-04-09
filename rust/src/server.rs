@@ -21,7 +21,12 @@ pub async fn run(addr: &str) -> Result<()> {
         let mut buf_stream = BufStream::new(stream);
         let db_handle = db.handle();
 
-        tokio::spawn(async move { handle(&db_handle, &mut buf_stream).await.unwrap() });
+        tokio::spawn(async move {
+            let result = handle(&db_handle, &mut buf_stream).await;
+            if let Err(e) = result {
+                println!("Connection closed on error: {e}");
+            }
+        });
     }
 }
 

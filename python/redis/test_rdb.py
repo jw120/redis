@@ -28,7 +28,7 @@ def test_string() -> None:
 
 def test_sample_database() -> None:
     """Test reading database from sample file."""
-    r = RDB.from_file(Path("integration/read_sample.rdb"))
+    r = RDB.from_file(Path("../integration/read_sample.rdb"))
 
     # Check metadata
     metadata_keys = [k for k, _v in r.metadata]
@@ -53,7 +53,7 @@ def test_sample_database() -> None:
 
 def test_sample_store() -> None:
     """Test reading store from sample file."""
-    store = RDB.from_file(Path("integration/read_sample.rdb")).store()
+    store = RDB.from_file(Path("../integration/read_sample.rdb")).store()
     assert store[b"mykey"] == (b"myval", None)
     assert store[b"anotherkey"] == (b"42", None)
     assert len(store) == 2
