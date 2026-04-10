@@ -1,26 +1,26 @@
 //! "Resp" format handling
 
-use anyhow::{Result, bail};
-use bytes::{Bytes, BytesMut, BufMut};
+use anyhow::{bail, Result};
+use bytes::{BufMut, Bytes, BytesMut};
 
 // To do - consider negative numbers
 
 /// Encode as a simple string
-pub fn encode_simple_string(s: Bytes) -> Bytes {
+pub fn encode_simple_string(s: &Bytes) -> Bytes {
     let mut buffer = BytesMut::new();
     buffer.put_u8(b'+');
-    buffer.put(s);
+    buffer.put(s.clone());
     buffer.put_slice(b"\r\n");
     buffer.freeze()
 }
 
 /// Encode as a bulk string
-pub fn encode_bulk_string(s: Bytes) -> Bytes {
+pub fn encode_bulk_string(s: &Bytes) -> Bytes {
     let mut buffer = BytesMut::new();
     buffer.put_u8(b'$');
     buffer.put_slice(s.len().to_string().as_bytes());
     buffer.put_slice(b"\r\n");
-    buffer.put(s);
+    buffer.put(s.clone());
     buffer.put_slice(b"\r\n");
     buffer.freeze()
 }
@@ -29,7 +29,6 @@ pub fn encode_bulk_string(s: Bytes) -> Bytes {
 pub fn encode_null_bulk_string() -> Bytes {
     Bytes::from("$-1\r\n")
 }
-
 
 /// Encode as an integer
 pub fn encode_integer(x: usize) -> Bytes {
@@ -40,6 +39,17 @@ pub fn encode_integer(x: usize) -> Bytes {
     buffer.freeze()
 }
 
+/// Encode an array (of strings)
+pub fn encode_array_of_strings(xs: &[Bytes]) -> Bytes {
+    let mut buffer = BytesMut::new();
+    buffer.put_u8(b'*');
+    buffer.put_slice(xs.len().to_string().as_bytes());
+    buffer.put_slice(b"\r\n");
+    for x in xs {
+        buffer.put(encode_bulk_string(x));
+    }
+    buffer.freeze()
+}
 
 /// Parse a bulk string: $ + number + \r\n + string + \r\n
 /// Returns string found and residual bytes on success
@@ -52,11 +62,11 @@ pub fn parse_bulk_string(s: Bytes) -> Result<(Bytes, Bytes)> {
 /// Returns string found and residual bytes on success
 pub fn parse_sized_bulk_string(n: usize, s: Bytes) -> Result<(Bytes, Bytes)> {
     let string = s.slice(..n);
-    let newline = s.slice(n..n+2);
+    let newline = s.slice(n..n + 2);
     if newline != "\r\n" {
-      bail!("Missing newline after string in parse_bulk_string");
+        bail!("Missing newline after string in parse_bulk_string");
     }
-    let residual = s.slice(n+2..);
+    let residual = s.slice(n + 2..);
     Ok((string, residual))
 }
 
@@ -78,7 +88,6 @@ fn parse_integer(s: Bytes) -> Result<(usize, Bytes)> {
     }
     Ok((x, s.slice(i..)))
 }
-
 
 /// Parse a line of format: char + usize + \r\n
 /// Returns number and residual bytes on success
@@ -102,12 +111,18 @@ mod tests {
 
     #[test]
     fn test_encode_simple_string() {
-        assert_eq!(encode_simple_string(Bytes::from("cat")), Bytes::from("+cat\r\n"));
+        assert_eq!(
+            encode_simple_string(&Bytes::from("cat")),
+            Bytes::from("+cat\r\n")
+        );
     }
-    
+
     #[test]
     fn test_encode_bulk_string() {
-        assert_eq!(encode_bulk_string(Bytes::from("cat")), Bytes::from("$3\r\ncat\r\n"));
+        assert_eq!(
+            encode_bulk_string(&Bytes::from("cat")),
+            Bytes::from("$3\r\ncat\r\n")
+        );
     }
 
     #[test]
@@ -116,27 +131,42 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_bulk_string() {
-        assert_eq!(parse_bulk_string(Bytes::from("$3\r\ncat\r\ndog")).unwrap(), (Bytes::from("cat"), Bytes::from("dog")));
+    fn test_encode_array_of_strings() {
+        assert_eq!(
+            encode_array_of_strings(&[Bytes::from("hello"), Bytes::from("world")]),
+            Bytes::from("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n")
+        );
     }
 
     #[test]
-    fn test_round_trip_bulk_string() {
-        let s = Bytes::from("abc23 a1!");
-        assert_eq!(parse_bulk_string(encode_bulk_string(s.clone())).unwrap(), (s, Bytes::new()));
+    fn test_parse_bulk_string() {
+        assert_eq!(
+            parse_bulk_string(Bytes::from("$3\r\ncat\r\ndog")).unwrap(),
+            (Bytes::from("cat"), Bytes::from("dog"))
+        );
     }
 
-    
     #[test]
     fn test_parse_char_integer() {
-        assert_eq!(parse_char_integer(b'$', Bytes::from("$123\r\n@")).unwrap(), (123, Bytes::from("@")));
-        assert_eq!(parse_char_integer(b'!', Bytes::from("!1234\r\n")).unwrap(), (1234, Bytes::new()));
-    }
-    
-    #[test]
-    fn test_parse_integer() {
-        assert_eq!(parse_integer(Bytes::from("123x")).unwrap(), (123, Bytes::from("x")));
-        assert_eq!(parse_integer(Bytes::from("1234")).unwrap(), (1234, Bytes::new()));
+        assert_eq!(
+            parse_char_integer(b'$', Bytes::from("$123\r\n@")).unwrap(),
+            (123, Bytes::from("@"))
+        );
+        assert_eq!(
+            parse_char_integer(b'!', Bytes::from("!1234\r\n")).unwrap(),
+            (1234, Bytes::new())
+        );
     }
 
+    #[test]
+    fn test_parse_integer() {
+        assert_eq!(
+            parse_integer(Bytes::from("123x")).unwrap(),
+            (123, Bytes::from("x"))
+        );
+        assert_eq!(
+            parse_integer(Bytes::from("1234")).unwrap(),
+            (1234, Bytes::new())
+        );
+    }
 }

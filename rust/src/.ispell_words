@@ -1,5 +1,6 @@
 cli
 expiry
+LRANGE
 mutex
 PX
 redis

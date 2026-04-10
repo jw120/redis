@@ -152,6 +152,13 @@ impl Database {
         self.insert_object(key, &Object::String(value.clone()), expiry);
     }
 
+    /// DEL command: Delete a key if present {
+    pub fn del(&self, key: &Bytes) -> Result<()> {
+        let mut state = self.shared.lock().unwrap();
+        state.entries.remove(key);
+        Ok(())
+    }
+
     /// RPUSH command: append a string value to a list in the database (creating it if not existing)
     /// Returns the new length of the list
     pub fn push(&self, direction: Direction, key: &Bytes, values: &[Bytes]) -> Result<usize> {
@@ -159,22 +166,41 @@ impl Database {
             bail!("ERR wrong number of arguments for push command");
         }
         for value in values {
-        match self.get_object(key) {
-            None => {
-                self.insert_object(key, &Object::List(VecDeque::from([value.clone()])), None);
-            }
-            Some(Object::List(_)) => match direction {
-                Direction::Left => {
-                    self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_front(value.clone()))
+            match self.get_object(key) {
+                None => {
+                    self.insert_object(key, &Object::List(VecDeque::from([value.clone()])), None);
                 }
-                Direction::Right => {
-                    self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_back(value.clone()))
+                Some(Object::List(_)) => match direction {
+                    Direction::Left => {
+                        self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_front(value.clone()))
+                    }
+                    Direction::Right => {
+                        self.modify_list(key, |w: &mut VecDeque<Bytes>| w.push_back(value.clone()))
+                    }
+                },
+                Some(_) => {
+                    bail!("WRONGTYPE Operation against a key holding the wrong kind of value")
                 }
-            },
-            Some(_) => bail!("WRONGTYPE Operation against a key holding the wrong kind of value"),
-        };
+            };
         }
         debug!("object is {:?}", self.get_object(key));
         self.length(key)
+    }
+
+    /// LRANGE command: return array of elements start..=stop
+    pub fn lrange(&self, key: &Bytes, start: usize, stop: usize) -> Result<Vec<Bytes>> {
+        let Some(object) = self.get_object(key) else {
+            return Ok(Vec::new());
+        };
+        let Object::List(v) = object else {
+            bail!("WRONGTYPE Operation against a key holding the wrong kind of value");
+        };
+        let mut output: Vec<Bytes> = Vec::new();
+        for (i, s) in v.iter().enumerate() {
+            if i >= start && i <= stop {
+                output.push(s.clone());
+            }
+        }
+        Ok(output)
     }
 }

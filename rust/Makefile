@@ -16,14 +16,17 @@ integration: build integration-base integration-lists
 build:
 	cargo build --release --target-dir=/tmp/codecrafters-build-redis-rust --manifest-path Cargo.toml
 
+run:
+	cargo run --release
+
 integration-base:
-	/tmp/codecrafters-build-redis-rust/release/codecrafters-redis & bats ../integration/base.bats; kill \%1
+	bats ../integration/base.bats
 
 integration-lists:
-	/tmp/codecrafters-build-redis-rust/release/codecrafters-redis & bats ../integration/lists.bats; kill \%1
+	bats ../integration/lists.bats
 
 integration-rdb:
-	/tmp/codecrafters-build-redis-rust/release/codecrafters-redis --dir ../integration --dbfilename read_sample.rdb & bats ../integration/rdb.bats; kill \%1
+	bats ../integration/rdb.bats
 
 integration-ms:
 	/tmp/codecrafters-build-redis-rust/release/codecrafters-redis --dir ../integration --dbfilename read_sample.rdb & ./your_program.sh --port 6380 --replicaof "localhost 6379" & bats ../integration/ms.bats; kill \%1; kill \%2
