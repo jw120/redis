@@ -165,6 +165,7 @@ impl Database {
         if values.is_empty() {
             bail!("ERR wrong number of arguments for push command");
         }
+
         for value in values {
             match self.get_object(key) {
                 None => {
@@ -188,13 +189,25 @@ impl Database {
     }
 
     /// LRANGE command: return array of elements start..=stop
-    pub fn lrange(&self, key: &Bytes, start: usize, stop: usize) -> Result<Vec<Bytes>> {
+    pub fn lrange(&self, key: &Bytes, start: i64, stop: i64) -> Result<Vec<Bytes>> {
         let Some(object) = self.get_object(key) else {
             return Ok(Vec::new());
         };
         let Object::List(v) = object else {
             bail!("WRONGTYPE Operation against a key holding the wrong kind of value");
         };
+
+        let start: usize = if start < 0 {
+            v.len().saturating_sub(-start as usize)
+        } else {
+            start as usize
+        };
+        let stop: usize = if stop < 0 {
+            v.len().saturating_sub(-stop as usize)
+        } else {
+            stop as usize
+        };
+                    
         let mut output: Vec<Bytes> = Vec::new();
         for (i, s) in v.iter().enumerate() {
             if i >= start && i <= stop {

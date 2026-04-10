@@ -63,10 +63,16 @@ pub fn dispatch(db: &Database, s: &[Bytes]) -> Result<Bytes> {
             Ok(resp::encode_integer(n))
         }
 
+        // Push a string to the left of a list
+        (b"LPUSH", [key, args @ ..]) => {
+            let n = db.push(Direction::Left, key, args)?;
+            Ok(resp::encode_integer(n))
+        }
+
         // Return an array range
         (b"LRANGE", [key, start, stop]) => {
-            let start = bytes_to_int::<usize>(start)?;
-            let stop = bytes_to_int::<usize>(stop)?;
+            let start = bytes_to_int::<i64>(start)?;
+            let stop = bytes_to_int::<i64>(stop)?;
             let array = db.lrange(key, start, stop)?;
             Ok(resp::encode_array_of_strings(&array))
         }
