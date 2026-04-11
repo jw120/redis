@@ -18,9 +18,10 @@ build:
 
 # Integration tests - run server and test with bats scripts
 # Code borrowed from: https://www.funwithlinux.net/blog/running-two-processes-in-parallel-from-makefile/
+# Modified to run the client in the foreground
 
 SERVER_CMD := /tmp/codecrafters-build-redis-rust/debug/codecrafters-redis
-CLIENT_CMD := bats ../integration/lists.bats
+CLIENT_CMD := bats ../integration/lists.bats ../integration/base.bats
 SERVER_PORT := 6379   
 SERVER_HOST := localhost
 MAX_RETRIES := 20       
@@ -51,14 +52,9 @@ integration: build
 	fi; \
 	\
 	echo "Server ready! Starting client..."; \
-	( $(CLIENT_CMD) 2>&1 | sed 's/^/[client] /' ) & \
-	CLIENT_PID=$$!; \
-	echo "Client running with PID: $$CLIENT_PID"; \
-	\
-	echo "Waiting for $$SERVER_PID $$CLIENT_PID"; \
-	wait $$SERVER_PID $$CLIENT_PID; \
-	echo "=== One process exited. Cleaning up ==="; \
-	kill $$SERVER_PID $$CLIENT_PID 2>/dev/null; \
+	$(CLIENT_CMD); \
+	echo "=== Client exited. Killing server ==="; \
+	kill $$SERVER_PID  2>/dev/null; \
 	exit 0
 
 kill-server:
