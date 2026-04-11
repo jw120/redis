@@ -127,12 +127,12 @@ impl Database {
             });
     }
 
-    /// Return length of a list
-    fn length(&self, key: &Bytes) -> Result<usize> {
-        if let Some(Object::List(v)) = self.get_object(key) {
-            Ok(v.len())
-        } else {
-            Err(anyhow!("WRONGTYPE Expected a list"))
+    /// Return length of a list (zero if a missing value)
+    pub fn length(&self, key: &Bytes) -> Result<usize> {
+        match self.get_object(key) {
+            Some(Object::List(v)) => Ok(v.len()),
+            Some(_) => Err(anyhow!("WRONGTYPE Expected a list")),
+            None => Ok(0)
         }
     }
 
@@ -188,6 +188,38 @@ impl Database {
         self.length(key)
     }
 
+    /// LPOP command: remove and return given number of elements from the left
+    pub fn pop(&self, key: &Bytes, n: usize) -> Result<Vec<Bytes>> {
+        let mut state = self.shared.lock().unwrap();
+        let object = match state.entries.get_mut(key) {
+            None => return Ok(Vec::new()),
+            Some(Record {
+                object,
+                expiry: None,
+            }) => object,
+            Some(Record {
+                object,
+                expiry: Some(t),
+            }) => {
+                if SystemTime::now() < *t {
+                    object
+                } else {
+                    return Ok(Vec::new())
+                }
+            }
+        };
+        let Object::List(v) = object else {
+            bail!("WRONGTYPE Operation against a key holding the wrong kind of value");
+        };
+            
+        let mut output: Vec<Bytes> = Vec::new();
+        while output.len() < n && let Some(element) = v.pop_front() {
+            output.push(element)
+        }
+        Ok(output)
+
+    }
+    
     /// LRANGE command: return array of elements start..=stop
     pub fn lrange(&self, key: &Bytes, start: i64, stop: i64) -> Result<Vec<Bytes>> {
         let Some(object) = self.get_object(key) else {

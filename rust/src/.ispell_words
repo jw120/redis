@@ -1,5 +1,7 @@
 cli
 expiry
+LLEN
+LPOP
 LPUSH
 LRANGE
 mutex

@@ -69,12 +69,35 @@ pub fn dispatch(db: &Database, s: &[Bytes]) -> Result<Bytes> {
             Ok(resp::encode_integer(n))
         }
 
+        // Pop one element from the left of the list
+        (b"LPOP", [key]) => {
+            let array = db.pop(key, 1)?;
+            match &array[..] {
+                [] => Ok(resp::encode_null_bulk_string()),
+                [s] => Ok(resp::encode_bulk_string(s)),
+                _ => Err(anyhow!("Internal failure"))
+            }
+        }
+
+        // Pop elements from the left of the list
+        (b"LPOP", [key, count]) => {
+            let count = bytes_to_int::<usize>(count)?;
+            let array = db.pop(key, count)?;
+            Ok(resp::encode_array_of_strings(&array))
+        }
+
         // Return an array range
         (b"LRANGE", [key, start, stop]) => {
             let start = bytes_to_int::<i64>(start)?;
             let stop = bytes_to_int::<i64>(stop)?;
             let array = db.lrange(key, start, stop)?;
             Ok(resp::encode_array_of_strings(&array))
+        }
+
+        // Return length of a list
+        (b"LLEN", [key]) => {
+            let n = db.length(key)?;
+            Ok(resp::encode_integer(n))
         }
 
         // Command - dummy implementation so redis-cli does not trip and fall
