@@ -104,7 +104,7 @@ pub fn dispatch(db: &Database, s: &[Bytes]) -> Result<Bytes> {
         (b"COMMAND", _) => Ok(resp::encode_simple_string(&Bytes::from("OK"))),
 
         // Unknown command or wrong number of arguments
-        _ => Err(anyhow!("Unknown command in dispatch")),
+        _ => Err(anyhow!("Unknown commmand in dispatch: '{}'", &String::from_utf8_lossy(&command)))
     }
 }
 
